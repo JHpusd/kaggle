@@ -50,7 +50,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "1.15.0"
 
 [metadata]
-content-hash = "706e962e562a9967fb02bfaf80b009e3741891a0da59f16f9b093d4221cfb7be"
+content-hash = "1e864fdf774c0511fad92aea551e391dba44780d01a147f235ec9447e4505fb2"
 python-versions = "^3.8"
 
 [metadata.files]

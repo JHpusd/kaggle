@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 import sys
 
 df = pd.read_csv('/home/runner/kaggle/titanic/train.csv')
@@ -78,9 +78,9 @@ y_train = train_arr[:,0]
 x_test = test_arr[:,1:]
 y_test = test_arr[:,0]
 
-# fitting linear regressor
-linreg = LinearRegression()
-linreg.fit(x_train, y_train)
+# fitting logistic regressor
+logreg = LogisticRegression(fit_intercept=True)
+logreg.fit(x_train, y_train)
 
 def convert_prediction_to_survival(entry):
     if entry < 0.5:
@@ -88,9 +88,9 @@ def convert_prediction_to_survival(entry):
     else:
         return 1
 
-test_set_predictions = linreg.predict(x_test)
+test_set_predictions = logreg.predict(x_test)
 test_set_predictions = [convert_prediction_to_survival(entry) for entry in test_set_predictions]
-train_set_predictions = linreg.predict(x_train)
+train_set_predictions = logreg.predict(x_train)
 train_set_predictions = [convert_prediction_to_survival(entry) for entry in train_set_predictions]
 
 def get_accuracy(predictions, original):
@@ -101,6 +101,9 @@ def get_accuracy(predictions, original):
             result += 1
     return result/len(predictions)
 
-print('used features: ',features_to_use)
+coef_dict = {features_to_use[i]:logreg.coef_[0][i] for i in range(len(features_to_use))}
+coef_dict['constant'] = logreg.intercept_[0]
+print('used features: ',features_to_use,'\n')
 print('training accuracy: ',get_accuracy(train_set_predictions, y_train))
-print('testing accuracy: ',get_accuracy(test_set_predictions, y_test))
+print('testing accuracy: ',get_accuracy(test_set_predictions, y_test),'\n')
+print('coefficients: ',{a:round(b,4) for a,b in coef_dict.items()})

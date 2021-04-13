@@ -68,18 +68,14 @@ columns = ['Survived'] + features_to_use
 df = df[columns]
 
 # interaction features
-def list_product(list_1, list_2):
-    assert len(list_1) == len(list_2), "lists are different lengths"
-    return [list_1[i] * list_2[i] for i in range(len(list_1))]
-
 for i in range(len(features_to_use)):
     item_1 = features_to_use[i]
     for j in range(len(features_to_use)):
         item_2 = features_to_use[j]
-        if j <= i or ('SibSp' in item_1 and 'SibSp' in item_2) or ('Embarked=' in item_1 and 'Embarked=' in item_2) or ('CabinType=' in item_1 and 'CabinType' in item_2):
+        if j <= i or ('SibSp' in item_1 and 'SibSp' in item_2) or ('Embarked=' in item_1 and 'Embarked=' in item_2) or ('CabinType=' in item_1 and 'CabinType=' in item_2):
             continue
         name = item_1 + ' * ' + item_2
-        df[name] = list_product(df[item_1], df[item_2])
+        df[name] = df[item_1] * df[item_2]
 
 # training and testing sets
 train_df = df[:500]

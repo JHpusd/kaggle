@@ -67,6 +67,20 @@ features_to_use = ['Sex','Pclass','Fare','Age','SibSp','SibSp>0','Parch>0','Emba
 columns = ['Survived'] + features_to_use
 df = df[columns]
 
+# interaction features
+def list_product(list_1, list_2):
+    assert len(list_1) == len(list_2), "lists are different lengths"
+    return [list_1[i] * list_2[i] for i in range(len(list_1))]
+
+for i in range(len(features_to_use)):
+    item_1 = features_to_use[i]
+    for j in range(len(features_to_use)):
+        item_2 = features_to_use[j]
+        if j <= i or ('SibSp' in item_1 and 'SibSp' in item_2) or ('Embarked=' in item_1 and 'Embarked=' in item_2) or ('CabinType=' in item_1 and 'CabinType' in item_2):
+            continue
+        name = item_1 + ' * ' + item_2
+        df[name] = list_product(df[item_1], df[item_2])
+
 # training and testing sets
 train_df = df[:500]
 test_df = df[500:]
@@ -79,7 +93,7 @@ x_test = test_arr[:,1:]
 y_test = test_arr[:,0]
 
 # fitting logistic regressor
-logreg = LogisticRegression(fit_intercept=True)
+logreg = LogisticRegression(fit_intercept=True, max_iter=10000)
 logreg.fit(x_train, y_train)
 
 def convert_prediction_to_survival(entry):
@@ -101,9 +115,5 @@ def get_accuracy(predictions, original):
             result += 1
     return result/len(predictions)
 
-coef_dict = {features_to_use[i]:logreg.coef_[0][i] for i in range(len(features_to_use))}
-coef_dict['constant'] = logreg.intercept_[0]
-print('used features: ',features_to_use,'\n')
 print('training accuracy: ',get_accuracy(train_set_predictions, y_train))
-print('testing accuracy: ',get_accuracy(test_set_predictions, y_test),'\n')
-print('coefficients: ',{a:round(b,4) for a,b in coef_dict.items()})
+print('testing accuracy: ',get_accuracy(test_set_predictions, y_test))

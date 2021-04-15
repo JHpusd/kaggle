@@ -80,28 +80,16 @@ for i in range(len(features_to_use)):
 # training and testing sets
 train_df = df[:500]
 test_df = df[500:]
-train_arr = np.array(train_df)
-test_arr = np.array(test_df)
 
-x_train = train_arr[:,1:]
-y_train = train_arr[:,0]
-x_test = test_arr[:,1:]
-y_test = test_arr[:,0]
-
-# fitting logistic regressor
-logreg = LogisticRegression(fit_intercept=True, max_iter=1000)
-logreg.fit(x_train, y_train)
+# setting up forward selection
+def list_apply(input_list, function):
+    return [function(x) for x in input_list]
 
 def convert_prediction_to_survival(entry):
     if entry < 0.5:
         return 0
     else:
         return 1
-
-test_set_predictions = logreg.predict(x_test)
-test_set_predictions = [convert_prediction_to_survival(entry) for entry in test_set_predictions]
-train_set_predictions = logreg.predict(x_train)
-train_set_predictions = [convert_prediction_to_survival(entry) for entry in train_set_predictions]
 
 def get_accuracy(predictions, original):
     result = 0
@@ -111,5 +99,60 @@ def get_accuracy(predictions, original):
             result += 1
     return result/len(predictions)
 
-print('training accuracy: ',get_accuracy(train_set_predictions, y_train))
-print('testing accuracy: ',get_accuracy(test_set_predictions, y_test))
+def get_set_accuracy(df, used_features, train_or_test):
+    if len(used_features) == 0:
+        return 0
+    cols = ['Survived'] + used_features
+    train_arr = np.array(train_df[cols])
+    test_arr = np.array(test_df[cols])
+    x_train = train_arr[:, 1:]
+    y_train = train_arr[:, 0]
+    x_test = test_arr[:, 1:]
+    y_test = test_arr[:, 0]
+
+    log_reg = LogisticRegression(max_iter=1000)
+    log_reg.fit(x_train, y_train)
+
+    train_predictions = log_reg.predict(x_train)
+    train_predictions = list_apply(train_predictions, convert_prediction_to_survival)
+    test_predictions = log_reg.predict(x_test)
+    test_predictions = list_apply(test_predictions, convert_prediction_to_survival)
+
+    if train_or_test == 'train':
+        return get_accuracy(train_predictions, y_train)
+    return get_accuracy(test_predictions, y_test)
+
+def get_next_feature(df, all_features, used_features):
+    all_features_copy = list(all_features)
+    used_features_copy = list(used_features)
+    for item in used_features:
+        all_features_copy.remove(item)
+    
+    best_col = all_features[0]
+    best_test_acc = get_set_accuracy(df, used_features+[best_col], 'test')
+    for col in all_features:
+        test_acc = get_set_accuracy(df, used_features+[col], 'test')
+        if test_acc > best_test_acc:
+            best_col = col
+            best_test_acc = test_acc
+
+    original_test_acc = get_set_accuracy(df, used_features, 'test')
+    if best_test_acc <= original_test_acc:
+        return None
+
+    return best_col
+
+all_features = list(df.columns)
+all_features = all_features[1:]
+used_features = []
+
+next_feature = get_next_feature(df, all_features, used_features)
+while next_feature != None:
+    used_features.append(next_feature)
+    train_acc = get_set_accuracy(df, used_features, 'train')
+    test_acc = get_set_accuracy(df, used_features, 'test')
+    print(used_features)
+    print('training accuracy:',train_acc)
+    print('testing accuracy:',test_acc,'\n')
+    next_feature = get_next_feature(df, all_features, used_features)
+

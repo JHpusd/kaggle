@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
 import sys
 
 df = pd.read_csv('/home/runner/kaggle/quiz_2_5/StudentsPerformance.csv')
@@ -32,7 +32,27 @@ for i in range(len(df['parental level of education'])):
     if df['parental level of education'][i] not in parent_educ:
         parent_educ.append(df['parental level of education'][i])
 
+df = df[['math score', 'parental level of education', 'test preparation course']]
 dummy = pd.get_dummies(df['parental level of education'])
+df = pd.concat([df, dummy], axis=1)
+del df['parental level of education']
+dummy = pd.get_dummies(df['test preparation course'])
+df = pd.concat([df, dummy], axis=1)
+del df['test preparation course']
+df = np.array(df)
 
-train = df[:997]
-test = df[997:]
+data = np.array(df)
+train_arr = data[:-3, :]
+test_arr = data[-3:, :]
+
+X_train = train_arr[:, 1:]
+X_test = test_arr[:, 1:]
+
+y_train = train_arr[:, 0]
+y_test = test_arr[:, 0]
+
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
+predictions = regressor.predict(X_test)
+print(predictions)
+

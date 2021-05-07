@@ -8,49 +8,48 @@ begin_time = time.time()
 
 # getting and manipulating data
 df = pd.read_csv('/home/runner/kaggle/assignment_89/data.csv')
-df = df[["Survived", "Sex", "Pclass", "Fare", "Age","SibSp"]][:100]
+features = ["Sex", "Pclass", "Fare", "Age","SibSp"]
+x_df = df[features][:100]
+y_df = df['Survived'][:100]
+y_arr = y_df.to_numpy().tolist()
 
 print("finished setting up data")
 df_time = time.time()
 print("time to set up dataframe: "+ str(df_time-begin_time)+'\n')
 
 # helper functions
-def leave_one_out_true_false(knn, df, row_index, dv):
-    x_df = df[[col for col in df.columns if col != dv]]
-    y_df = df[dv]
+def leave_one_out_true_false(knn, x_arr, y_arr, row_index):
+    x_copy = list(x_arr)
+    y_copy = list(y_arr)
+    classification = y_copy[row_index]
+    values = x_copy[row_index]
 
-    classification = df[dv].iloc[[row_index]].to_numpy().tolist()[0]
-    values = x_df.iloc[[row_index]].to_numpy().tolist()[0]
+    x_copy.pop(row_index)
+    y_copy.pop(row_index)
 
-    train_df = x_df.drop([row_index])
-    train = train_df.reset_index(drop=True).to_numpy().tolist()
-    test_df = y_df.drop([row_index])
-    test = test_df.reset_index(drop=True).to_numpy().tolist()
-
-    prediction = knn.fit(train, test).predict([values])
+    prediction = knn.fit(x_copy, y_copy).predict([values])
     if prediction == classification:
         return True
     return False
 
-def leave_one_out_accuracy(knn, df, dv):
-    df_arr = df.to_numpy().tolist()
+def leave_one_out_accuracy(knn, x_arr, y_arr):
     correct = 0
-    for row_index in range(len(df_arr)):
-        if leave_one_out_true_false(knn, df, row_index, dv):
+    for row_index in range(len(x_arr)):
+        if leave_one_out_true_false(knn, x_arr, y_arr, row_index):
             correct += 1
-    return correct / len(df_arr)
+    return correct / len(x_arr)
 
 # starting the problem
-k_vals = [i for i in range(20) if i%2==1]
+k_vals = [i for i in range(100) if i%2==1]
 unnormalized = []
 simple_scaling = []
-ss_df = df.copy()
+ss_df = x_df.copy()
 min_max = []
-mm_df = df.copy()
+mm_df = x_df.copy()
 z_scoring = []
-zs_df = df.copy()
+zs_df = x_df.copy()
 
-for col in [col for col in ss_df if col != 'Survived']:
+for col in [col for col in x_df]:
     ss_df[col] = ss_df[col] / ss_df[col].max()
     mm_df[col] = (mm_df[col]-mm_df[col].min()) / (mm_df[col].max()-mm_df[col].min())
     zs_df[col] = (zs_df[col] - zs_df[col].mean()) / zs_df[col].std()
@@ -59,16 +58,25 @@ print('finished normalizing')
 normalization_time = time.time()
 print('time to normalize: '+str(normalization_time - df_time)+'\n')
 
+unn_x = x_df.to_numpy().tolist()
+ss_x = ss_df.to_numpy().tolist()
+mm_x = mm_df.to_numpy().tolist()
+zs_x = zs_df.to_numpy().tolist()
+
+print('finished converting dataframes to lists')
+conversion_time = time.time()
+print('time to convert: '+str(conversion_time-normalization_time)+'\n')
+
 for k in k_vals:
     knn = knearestclass(n_neighbors=k)
-    unnormalized.append(leave_one_out_accuracy(knn, df, 'Survived'))
-    simple_scaling.append(leave_one_out_accuracy(knn, ss_df, 'Survived'))
-    min_max.append(leave_one_out_accuracy(knn, mm_df, 'Survived'))
-    z_scoring.append(leave_one_out_accuracy(knn, zs_df, 'Survived'))
+    unnormalized.append(leave_one_out_accuracy(knn, unn_x, y_arr))
+    simple_scaling.append(leave_one_out_accuracy(knn, ss_x, y_arr))
+    min_max.append(leave_one_out_accuracy(knn, mm_x, y_arr))
+    z_scoring.append(leave_one_out_accuracy(knn, zs_x, y_arr))
 
 print('finished adding accuracies')
 accuracy_time = time.time()
-print('time to add accuracies: '+str(accuracy_time - normalization_time)+'\n')
+print('time to add accuracies: '+str(accuracy_time - conversion_time)+'\n')
 
 plt.style.use('bmh')
 plt.plot(k_vals, unnormalized, label='unnormalized')
@@ -86,4 +94,6 @@ plot_time = time.time()
 print('time to plot: '+str(plot_time - accuracy_time)+'\n')
 
 end_time = time.time()
-print('time taken:', end_time - begin_time)
+total_time = end_time - begin_time
+print('time taken:', total_time)
+print('relative goal:', 1.958076667*45)
